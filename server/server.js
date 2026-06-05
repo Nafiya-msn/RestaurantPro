@@ -43,14 +43,14 @@ app.use('/api/menu', menuRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/staff', staffRoutes);
-
+app.get('/', (req, res) => {
+    res.send('Welcome to the RestaurantPro API');
+});
 app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5001;
-app.get('/', (req, res) => {
-    res.send('Welcome to the RestaurantPro API');
-});
+
 app.listen(PORT, () => {
     console.log(`RestaurantPro server running on port ${PORT}`);
 });
