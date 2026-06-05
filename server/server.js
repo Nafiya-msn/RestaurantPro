@@ -48,6 +48,10 @@ app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5001;
+app.get('/', (req, res) => {
+    res.send('Welcome to the RestaurantPro API');
+});
 app.listen(PORT, () => {
     console.log(`RestaurantPro server running on port ${PORT}`);
 });
+console.log("MONGO_URI =", process.env.MONGODB_URI);
