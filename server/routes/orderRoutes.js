@@ -5,6 +5,7 @@ const {
     updateOrderStatus,
     trackOrder,
     getCustomerOrders,
+    getAllOrders,
 } = require('../controllers/orderController');
 const { protect } = require('../middleware/authMiddleware');
 const { authorizeRoles } = require('../middleware/roleMiddleware');
@@ -31,6 +32,7 @@ const orderStatusValidation = [
     validateRequest,
 ];
 
+router.get('/', protect, authorizeRoles('admin', 'staff'), getAllOrders);
 router.post('/', protect, orderValidation, createOrder);
 router.put('/:id/status', protect, authorizeRoles('admin', 'staff'), orderStatusValidation, updateOrderStatus);
 router.get('/:id', protect, [param('id').isMongoId().withMessage('Invalid order ID'), validateRequest], trackOrder);

@@ -69,9 +69,19 @@ const getCustomerOrders = async (req, res, next) => {
     }
 };
 
+const getAllOrders = async (req, res, next) => {
+    try {
+        const orders = await Order.find().populate('customer', 'name email').sort({ createdAt: -1 });
+        res.json(orders);
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     createOrder,
     updateOrderStatus,
     trackOrder,
     getCustomerOrders,
+    getAllOrders,
 };

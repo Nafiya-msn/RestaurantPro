@@ -22,7 +22,7 @@ const OrdersPage = () => {
         showToast(`Order ${order.id} is currently ${order.status}.`, 'info');
     };
 
-    const sortedOrders = useMemo(() => [...orders].sort((a, b) => (a.status === 'completed' ? 1 : -1)), [orders]);
+    const sortedOrders = useMemo(() => [...orders].sort((a, b) => ((a.orderStatus || a.status) === 'completed' ? 1 : -1)), [orders]);
 
     return (
         <div>
@@ -56,27 +56,35 @@ const OrdersPage = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {sortedOrders.map((order) => (
-                                <tr key={order.id}>
-                                    <td>{order.id}</td>
-                                    <td>{order.customer}</td>
-                                    <td>{order.type}</td>
-                                    <td>{formatCurrency(order.total)}</td>
+                            {sortedOrders.map((order) => {
+                                const orderStatus = order.orderStatus || order.status;
+                                const orderId = order._id || order.id;
+                                const customerName = order.customer?.name || order.customer || 'Unknown';
+                                const orderType = order.orderType || order.type;
+                                const total = order.totalAmount || order.total || 0;
+
+                                return (
+                                <tr key={orderId}>
+                                    <td>{orderId}</td>
+                                    <td>{customerName}</td>
+                                    <td>{orderType}</td>
+                                    <td>{formatCurrency(total)}</td>
                                     <td>
-                                        <span className={`badge ${order.status === 'completed' ? 'bg-success' : order.status === 'ready' ? 'bg-warning text-dark' : 'bg-secondary'}`}>
-                                            {order.status}
+                                        <span className={`badge ${orderStatus === 'completed' ? 'bg-success' : (orderStatus === 'ready' || orderStatus === 'received') ? 'bg-warning text-dark' : 'bg-secondary'}`}>
+                                            {orderStatus}
                                         </span>
                                     </td>
                                     <td className="text-end">
                                         <button className="btn btn-sm btn-outline-gold me-2" onClick={() => handleTrack(order)}>
                                             Track
                                         </button>
-                                        <button className="btn btn-sm btn-outline-secondary" onClick={() => cycleOrderStatus(order.id)}>
+                                        <button className="btn btn-sm btn-outline-secondary" onClick={() => cycleOrderStatus(orderId)}>
                                             Advance
                                         </button>
                                     </td>
                                 </tr>
-                            ))}
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

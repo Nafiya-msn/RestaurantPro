@@ -1,12 +1,12 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
-import ProtectedRoute from './components/common/ProtectedRoute';
+import RoleRoute from './components/common/RoleRoute';
 import MainLayout from './layouts/MainLayout';
 import AuthLayout from './layouts/AuthLayout';
+import CustomerLayout from './layouts/CustomerLayout';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import DashboardPage from './pages/DashboardPage';
 import ReservationsPage from './pages/ReservationsPage';
 import OrdersPage from './pages/OrdersPage';
 import MenuManagementPage from './pages/MenuManagementPage';
@@ -14,29 +14,56 @@ import CustomerManagementPage from './pages/CustomerManagementPage';
 import StaffManagementPage from './pages/StaffManagementPage';
 import ProfilePage from './pages/ProfilePage';
 
+// New Dashboards
+import AdminDashboard from './pages/admin/AdminDashboard';
+import StaffDashboard from './pages/staff/StaffDashboard';
+import CustomerDashboard from './pages/customer/CustomerDashboard';
+
 const AppRouter = () => {
     const { user } = useAuth();
 
     return (
         <Routes>
-            <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
+            <Route path="/" element={user ? <RoleRoute roles={['admin', 'staff', 'customer']}><Navigate to={`/${user.role}/dashboard`} replace /></RoleRoute> : <LandingPage />} />
 
             <Route path="/auth" element={<AuthLayout />}>
                 <Route path="login" element={<LoginPage />} />
                 <Route path="register" element={<RegisterPage />} />
             </Route>
 
-            <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-                <Route path="dashboard" element={<DashboardPage />} />
+            {/* Admin Routes */}
+            <Route path="/admin" element={<RoleRoute roles={['admin']}><MainLayout /></RoleRoute>}>
+                <Route path="dashboard" element={<AdminDashboard />} />
                 <Route path="reservations" element={<ReservationsPage />} />
                 <Route path="orders" element={<OrdersPage />} />
                 <Route path="menu" element={<MenuManagementPage />} />
                 <Route path="customers" element={<CustomerManagementPage />} />
                 <Route path="staff" element={<StaffManagementPage />} />
                 <Route path="profile" element={<ProfilePage />} />
+                <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
             </Route>
 
-            <Route path="*" element={<Navigate to={user ? '/dashboard' : '/auth/login'} replace />} />
+            {/* Staff Routes */}
+            <Route path="/staff" element={<RoleRoute roles={['staff']}><MainLayout /></RoleRoute>}>
+                <Route path="dashboard" element={<StaffDashboard />} />
+                <Route path="orders" element={<OrdersPage />} />
+                <Route path="menu" element={<MenuManagementPage />} />
+                <Route path="profile" element={<ProfilePage />} />
+                <Route path="*" element={<Navigate to="/staff/dashboard" replace />} />
+            </Route>
+
+            {/* Customer Routes */}
+            <Route path="/customer" element={<RoleRoute roles={['customer']}><CustomerLayout /></RoleRoute>}>
+                <Route path="dashboard" element={<CustomerDashboard />} />
+                <Route path="orders" element={<OrdersPage />} />
+                <Route path="profile" element={<ProfilePage />} />
+                {/* cart will be here */}
+                <Route path="*" element={<Navigate to="/customer/dashboard" replace />} />
+            </Route>
+
+            {/* Catch-all backwards compatibility */}
+            <Route path="/dashboard" element={<RoleRoute roles={['admin', 'staff', 'customer']}><Navigate to={user ? `/${user.role}/dashboard` : '/auth/login'} replace /></RoleRoute>} />
+            <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
     );
 };

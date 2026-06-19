@@ -1,7 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 
 const MenuManagementPage = () => {
+    const { user } = useAuth();
+    const isAdmin = user?.role === 'admin';
+
     const {
         filteredMenuItems,
         cartItems,
@@ -121,9 +125,11 @@ const MenuManagementPage = () => {
                     <p className="text-muted mb-0">Discover 60+ dishes with premium ingredients and traditional recipes.</p>
                 </div>
                 <div className="d-flex gap-2 flex-wrap">
-                    <button className="btn btn-gold" onClick={() => setShowForm((current) => !current)}>
-                        {showForm ? 'Close form' : 'Add item'}
-                    </button>
+                    {isAdmin && (
+                        <button className="btn btn-gold" onClick={() => setShowForm((current) => !current)}>
+                            {showForm ? 'Close form' : 'Add item'}
+                        </button>
+                    )}
                     <button className="btn btn-outline-gold" onClick={() => placeOrder(orderType)}>
                         Order now
                     </button>
@@ -256,7 +262,7 @@ const MenuManagementPage = () => {
                 </div>
                 <div className="row g-3 mb-5">
                     {featuredDishes.map((item) => (
-                        <div className="col-sm-6 col-lg-4 col-xl-3" key={item.id}>
+                        <div className="col-sm-6 col-lg-4 col-xl-3" key={item._id || item.id}>
                             <MenuItem item={item} />
                         </div>
                     ))}
@@ -271,7 +277,7 @@ const MenuManagementPage = () => {
                 </div>
                 <div className="row g-3 mb-5">
                     {popularDishes.map((item) => (
-                        <div className="col-sm-6 col-lg-4 col-xl-2" key={item.id}>
+                        <div className="col-sm-6 col-lg-4 col-xl-2" key={item._id || item.id}>
                             <MenuItem item={item} />
                         </div>
                     ))}
@@ -293,7 +299,7 @@ const MenuManagementPage = () => {
                 ) : (
                     <div className="row g-3 mb-4">
                         {filteredByPrice.map((item) => (
-                            <div className="col-sm-6 col-lg-4 col-xl-3" key={item.id}>
+                            <div className="col-sm-6 col-lg-4 col-xl-3" key={item._id || item.id}>
                                 <MenuItem item={item} />
                             </div>
                         ))}

@@ -1,15 +1,22 @@
 import { NavLink } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const Sidebar = () => {
-    const navItems = [
-        { label: 'Dashboard', to: '/dashboard' },
-        { label: 'Reservations', to: '/reservations' },
-        { label: 'Orders', to: '/orders' },
-        { label: 'Menu', to: '/menu' },
-        { label: 'Customers', to: '/customers' },
-        { label: 'Staff', to: '/staff' },
-        { label: 'Profile', to: '/profile' },
+    const { user } = useAuth();
+    const role = user?.role || 'staff'; // fallback if somehow not set
+
+    // Define all possible items with their allowed roles
+    const allItems = [
+        { label: 'Dashboard', to: `/${role}/dashboard`, roles: ['admin', 'staff'] },
+        { label: 'Reservations', to: '/reservations', roles: ['admin'] },
+        { label: 'Orders', to: '/orders', roles: ['admin', 'staff'] },
+        { label: 'Menu', to: '/menu', roles: ['admin', 'staff'] },
+        { label: 'Customers', to: '/customers', roles: ['admin'] },
+        { label: 'Staff', to: '/staff', roles: ['admin'] },
+        { label: 'Profile', to: '/profile', roles: ['admin', 'staff'] },
     ];
+
+    const navItems = allItems.filter(item => item.roles.includes(role));
 
     return (
         <aside className="sidebar d-flex flex-column text-white bg-black shadow-lg">

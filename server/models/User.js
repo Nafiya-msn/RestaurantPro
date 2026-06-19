@@ -11,6 +11,19 @@ const userSchema = mongoose.Schema(
             enum: ['admin', 'staff', 'customer'],
             default: 'customer',
         },
+        phone: { type: String, trim: true },
+        avatar: { type: String, trim: true },
+        wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'MenuItem' }],
+        addresses: [
+            {
+                street: { type: String, required: true },
+                city: { type: String, required: true },
+                state: { type: String, required: true },
+                zipCode: { type: String, required: true },
+                country: { type: String, default: 'US' },
+                isDefault: { type: Boolean, default: false }
+            }
+        ]
     },
     { timestamps: true }
 );

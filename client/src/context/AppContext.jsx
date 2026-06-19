@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
+import { fetchMenu, addMenuItem as apiAddMenuItem } from '../services/menuService';
+import { createOrder as apiCreateOrder, getCustomerOrders, getAllOrders, updateOrderStatus as apiUpdateOrderStatus } from '../services/orderService';
 
 const AppContext = createContext();
 
@@ -89,45 +91,6 @@ const defaultMenuItems = [
     { id: 'be-007', name: 'Badam Milk', category: 'Beverages', price: 3.99, available: true, description: 'Almond milk shake with spices.', image: '🥛', rating: 4.5, featured: false },
 ];
 
-const defaultOrders = [
-    {
-        id: 'RD-0012',
-        customer: 'Elena Rivera',
-        type: 'Dine-in',
-        total: 128.0,
-        status: 'preparing',
-        items: ['Gold Leaf Steak', 'Champagne Toast'],
-    },
-    {
-        id: 'RD-0013',
-        customer: 'Liam Brooks',
-        type: 'Delivery',
-        total: 64.0,
-        status: 'ready',
-        items: ['Ocean Caviar Salad', 'Sparkling Water'],
-    },
-    {
-        id: 'RD-0014',
-        customer: 'Ava Martinez',
-        type: 'Takeaway',
-        total: 42.0,
-        status: 'completed',
-        items: ['Sunset Lobster Roll'],
-    },
-];
-
-const defaultReservations = [
-    { id: 'R-1001', name: 'Mia Harper', time: '18:30', guests: 4, status: 'confirmed' },
-    { id: 'R-1002', name: 'Noah Chen', time: '19:00', guests: 2, status: 'pending' },
-    { id: 'R-1003', name: 'Olivia Park', time: '20:15', guests: 6, status: 'confirmed' },
-];
-
-const defaultReviews = [
-    { id: 'rev-001', name: 'Sofia Lee', rating: 5, note: 'Exceptional dining experience with attentive service.' },
-    { id: 'rev-002', name: 'Marco Dunn', rating: 4, note: 'Beautiful ambiance and flawlessly plated dishes.' },
-    { id: 'rev-003', name: 'Tara Singh', rating: 5, note: 'Top-tier hospitality and unforgettable flavors.' },
-];
-
 const loadAppState = () => {
     try {
         const saved = localStorage.getItem('restaurantpro_app_state');
@@ -151,17 +114,51 @@ const AppProvider = ({ children }) => {
 
     const [menuItems, setMenuItems] = useState(storedState?.menuItems ?? defaultMenuItems);
     const [cartItems, setCartItems] = useState(storedState?.cartItems ?? []);
-    const [orders, setOrders] = useState(storedState?.orders ?? defaultOrders);
-    const [reservations, setReservations] = useState(storedState?.reservations ?? defaultReservations);
-    const [reviews, setReviews] = useState(storedState?.reviews ?? defaultReviews);
+    const [orders, setOrders] = useState([]);
+    const [reservations, setReservations] = useState(storedState?.reservations ?? []);
+    const [reviews, setReviews] = useState(storedState?.reviews ?? []);
     const [searchQuery, setSearchQuery] = useState('');
+
+    useEffect(() => {
+        const loadInitialData = async () => {
+            try {
+                // Fetch Menu
+                const fetchedMenu = await fetchMenu();
+                if (fetchedMenu && fetchedMenu.length > 0) {
+                    setMenuItems(fetchedMenu);
+                }
+            } catch (err) {
+                console.error('Error fetching menu:', err);
+            }
+
+            if (user) {
+                try {
+                    // Fetch Orders based on Role
+                    let fetchedOrders = [];
+                    if (user.role === 'admin' || user.role === 'staff') {
+                        fetchedOrders = await getAllOrders();
+                    } else if (user.role === 'customer') {
+                        fetchedOrders = await getCustomerOrders(user._id);
+                    }
+                    
+                    if (fetchedOrders) {
+                        setOrders(fetchedOrders);
+                    }
+                } catch (err) {
+                    console.error('Error fetching orders:', err);
+                }
+            }
+        };
+
+        loadInitialData();
+    }, [user]);
 
     useEffect(() => {
         localStorage.setItem(
             'restaurantpro_app_state',
-            JSON.stringify({ menuItems, cartItems, orders, reservations, reviews })
+            JSON.stringify({ cartItems, reservations, reviews })
         );
-    }, [menuItems, cartItems, orders, reservations, reviews]);
+    }, [cartItems, reservations, reviews]);
 
     const cartTotal = useMemo(
         () => cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
@@ -169,7 +166,7 @@ const AppProvider = ({ children }) => {
     );
 
     const totalRevenue = useMemo(
-        () => orders.reduce((sum, order) => sum + order.total, 0),
+        () => orders.reduce((sum, order) => sum + order.totalAmount, 0),
         [orders]
     );
 
@@ -180,7 +177,7 @@ const AppProvider = ({ children }) => {
             (item) =>
                 item.name.toLowerCase().includes(query) ||
                 item.category.toLowerCase().includes(query) ||
-                item.description.toLowerCase().includes(query)
+                (item.description && item.description.toLowerCase().includes(query))
         );
     }, [menuItems, searchQuery]);
 
@@ -191,10 +188,10 @@ const AppProvider = ({ children }) => {
         }
 
         setCartItems((current) => {
-            const existing = current.find((item) => item.id === menuItem.id);
+            const existing = current.find((item) => item.id === menuItem.id || item._id === menuItem._id);
             if (existing) {
                 return current.map((item) =>
-                    item.id === menuItem.id ? { ...item, quantity: item.quantity + 1 } : item
+                    (item.id === menuItem.id || item._id === menuItem._id) ? { ...item, quantity: item.quantity + 1 } : item
                 );
             }
             return [...current, { ...menuItem, quantity: 1 }];
@@ -206,13 +203,13 @@ const AppProvider = ({ children }) => {
     const updateCartQuantity = (id, quantity) => {
         setCartItems((current) =>
             current
-                .map((item) => (item.id === id ? { ...item, quantity: Math.max(1, quantity) } : item))
+                .map((item) => ((item.id === id || item._id === id) ? { ...item, quantity: Math.max(1, quantity) } : item))
                 .filter((item) => item.quantity > 0)
         );
     };
 
     const removeCartItem = (id) => {
-        setCartItems((current) => current.filter((item) => item.id !== id));
+        setCartItems((current) => current.filter((item) => (item.id !== id && item._id !== id)));
         showToast('Item removed from cart.', 'info');
     };
 
@@ -221,41 +218,56 @@ const AppProvider = ({ children }) => {
         showToast('Cart cleared.', 'info');
     };
 
-    const placeOrder = (type = 'Dine-in') => {
+    const placeOrder = async (type = 'Dine-in') => {
         if (cartItems.length === 0) {
             showToast('Add items to the cart before placing an order.', 'warning');
             return null;
         }
 
-        const total = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-        const nextOrder = {
-            id: `RD-${1000 + Math.floor(Math.random() * 9000)}`,
-            customer: user?.name ?? 'Guest Customer',
-            type,
-            total,
-            status: 'pending',
-            items: cartItems.map((item) => `${item.name} x${item.quantity}`),
-        };
+        const totalAmount = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        
+        try {
+            const orderPayload = {
+                items: cartItems.map((item) => ({
+                    menuItem: item._id || item.id,
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.price,
+                })),
+                orderType: type.toLowerCase(),
+                totalAmount,
+                paymentStatus: 'pending'
+            };
 
-        setOrders((current) => [nextOrder, ...current]);
-        setCartItems([]);
-        showToast(`Successfully placed a ${type.toLowerCase()} order.`, 'success');
-        return nextOrder;
+            const nextOrder = await apiCreateOrder(orderPayload);
+            setOrders((current) => [nextOrder, ...current]);
+            setCartItems([]);
+            showToast(`Successfully placed a ${type.toLowerCase()} order.`, 'success');
+            return nextOrder;
+        } catch (err) {
+            showToast(err?.response?.data?.message || 'Failed to place order.', 'danger');
+            return null;
+        }
     };
 
-    const cycleOrderStatus = (orderId) => {
-        const order = orders.find((item) => item.id === orderId);
+    const cycleOrderStatus = async (orderId) => {
+        const order = orders.find((item) => item._id === orderId || item.id === orderId);
         if (!order) return;
 
-        const statusSequence = ['pending', 'preparing', 'ready', 'completed'];
-        const nextIndex = Math.min(statusSequence.indexOf(order.status) + 1, statusSequence.length - 1);
+        const statusSequence = ['received', 'preparing', 'ready', 'completed'];
+        const currentStatus = order.orderStatus || order.status;
+        const nextIndex = Math.min(statusSequence.indexOf(currentStatus) + 1, statusSequence.length - 1);
         const nextStatus = statusSequence[nextIndex];
 
-        setOrders((current) =>
-            current.map((item) => (item.id === orderId ? { ...item, status: nextStatus } : item))
-        );
-
-        showToast(`Order ${order.id} moved to ${nextStatus}.`, 'info');
+        try {
+            const updatedOrder = await apiUpdateOrderStatus(orderId, nextStatus);
+            setOrders((current) =>
+                current.map((item) => (item._id === orderId || item.id === orderId ? updatedOrder : item))
+            );
+            showToast(`Order ${updatedOrder._id} moved to ${nextStatus}.`, 'info');
+        } catch (err) {
+            showToast('Failed to update order status.', 'danger');
+        }
     };
 
     const addMenuItem = ({ name, category, price, description }) => {

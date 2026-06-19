@@ -23,4 +23,9 @@ const getCustomerOrders = async (customerId) => {
     return data;
 };
 
-export { createOrder, updateOrderStatus, trackOrder, getCustomerOrders };
+const getAllOrders = async () => {
+    const { data } = await api.get('/orders');
+    return data;
+};
+
+export { createOrder, updateOrderStatus, trackOrder, getCustomerOrders, getAllOrders };
