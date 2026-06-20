@@ -12,20 +12,21 @@ const ReservationsPage = () => {
         notes: '',
     });
 
-    const handleSave = (event) => {
+    const handleSave = async (event) => {
         event.preventDefault();
         if (!reservationForm.name.trim()) return;
-        addReservation(reservationForm);
+        await addReservation(reservationForm);
         setShowModal(false);
         setReservationForm({ name: '', time: '18:30', guests: 2, notes: '' });
     };
 
     const buildAction = (reservation) => {
+        const reservationId = reservation._id || reservation.id;
         if (reservation.status === 'pending') {
             return (
                 <button
                     className="btn btn-sm btn-outline-gold me-2"
-                    onClick={() => updateReservationStatus(reservation.id, 'confirmed')}
+                    onClick={() => updateReservationStatus(reservationId, 'confirmed')}
                 >
                     Confirm
                 </button>
@@ -36,7 +37,7 @@ const ReservationsPage = () => {
             return (
                 <button
                     className="btn btn-sm btn-outline-gold me-2"
-                    onClick={() => updateReservationStatus(reservation.id, 'completed')}
+                    onClick={() => updateReservationStatus(reservationId, 'completed')}
                 >
                     Complete
                 </button>
@@ -73,10 +74,10 @@ const ReservationsPage = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {reservations.map((reservation) => (
-                                <tr key={reservation.id}>
-                                    <td>{reservation.name}</td>
-                                    <td>{reservation.time}</td>
+        {reservations.map((reservation) => (
+                                <tr key={reservation._id || reservation.id}>
+                                    <td>{reservation.customerName || reservation.customer?.name || 'Guest'}</td>
+                                    <td>{reservation.time || '-'}</td>
                                     <td>{reservation.guests}</td>
                                     <td>
                                         <span className={`badge ${reservation.status === 'confirmed' ? 'bg-success' : reservation.status === 'pending' ? 'bg-warning text-dark' : reservation.status === 'cancelled' ? 'bg-danger' : 'bg-secondary'}`}>
@@ -85,7 +86,7 @@ const ReservationsPage = () => {
                                     </td>
                                     <td className="text-end">
                                         {buildAction(reservation)}
-                                        <button className="btn btn-sm btn-outline-danger" onClick={() => cancelReservation(reservation.id)}>
+                                        <button className="btn btn-sm btn-outline-danger" onClick={() => cancelReservation(reservation._id || reservation.id)}>
                                             Cancel
                                         </button>
                                     </td>

@@ -19,10 +19,11 @@ const OrdersPage = () => {
     };
 
     const handleTrack = (order) => {
-        showToast(`Order ${order.id} is currently ${order.status}.`, 'info');
+        const orderStatus = order.orderStatus || order.status;
+        showToast(`Order ${order._id || order.id} is currently ${orderStatus}.`, 'info');
     };
 
-    const sortedOrders = useMemo(() => [...orders].sort((a, b) => ((a.orderStatus || a.status) === 'completed' ? 1 : -1)), [orders]);
+    const sortedOrders = useMemo(() => [...orders].sort((a, b) => new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id)), [orders]);
 
     return (
         <div>

@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const orderItemSchema = mongoose.Schema(
     {
-        menuItem: { type: mongoose.Schema.Types.ObjectId, ref: 'MenuItem', required: true },
+        menuItem: { type: mongoose.Schema.Types.Mixed, required: true },
         name: { type: String, required: true },
         quantity: { type: Number, required: true, min: 1 },
         price: { type: Number, required: true, min: 0 },
@@ -28,8 +28,8 @@ const orderSchema = mongoose.Schema(
         },
         orderStatus: {
             type: String,
-            enum: ['received', 'preparing', 'ready', 'completed', 'cancelled'],
-            default: 'received',
+            enum: ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled'],
+            default: 'pending',
         },
     },
     {

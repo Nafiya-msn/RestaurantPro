@@ -20,4 +20,4 @@ const cancelReservation = async (reservationId) => {
     return data;
 };
 
-export { fetchReservations, createReservation, updateReservation, cancelReservation };
+export { fetchReservations as getReservations, createReservation, updateReservation, cancelReservation };

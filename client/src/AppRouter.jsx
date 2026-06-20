@@ -17,7 +17,12 @@ import ProfilePage from './pages/ProfilePage';
 // New Dashboards
 import AdminDashboard from './pages/admin/AdminDashboard';
 import StaffDashboard from './pages/staff/StaffDashboard';
+import TeamMembersPage from './pages/staff/TeamMembersPage';
+import GuestListPage from './pages/staff/GuestListPage';
 import CustomerDashboard from './pages/customer/CustomerDashboard';
+import CustomerCartPage from './pages/customer/CustomerCartPage';
+import CheckoutPage from './pages/customer/CheckoutPage';
+import OrderTrackingPage from './pages/customer/OrderTrackingPage';
 
 const AppRouter = () => {
     const { user } = useAuth();
@@ -48,6 +53,9 @@ const AppRouter = () => {
                 <Route path="dashboard" element={<StaffDashboard />} />
                 <Route path="orders" element={<OrdersPage />} />
                 <Route path="menu" element={<MenuManagementPage />} />
+                <Route path="reservations" element={<ReservationsPage />} />
+                <Route path="guests" element={<GuestListPage />} />
+                <Route path="team" element={<TeamMembersPage />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="*" element={<Navigate to="/staff/dashboard" replace />} />
             </Route>
@@ -57,7 +65,9 @@ const AppRouter = () => {
                 <Route path="dashboard" element={<CustomerDashboard />} />
                 <Route path="orders" element={<OrdersPage />} />
                 <Route path="profile" element={<ProfilePage />} />
-                {/* cart will be here */}
+                <Route path="cart" element={<CustomerCartPage />} />
+                <Route path="checkout" element={<CheckoutPage />} />
+                <Route path="tracking" element={<OrderTrackingPage />} />
                 <Route path="*" element={<Navigate to="/customer/dashboard" replace />} />
             </Route>
 

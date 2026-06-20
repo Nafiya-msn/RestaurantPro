@@ -1,94 +1,52 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
-import { fetchMenu, addMenuItem as apiAddMenuItem } from '../services/menuService';
+import { fetchMenu, addMenuItem as apiAddMenuItem, updateMenuItem as apiUpdateMenuItem, deleteMenuItem as apiDeleteMenuItem } from '../services/menuService';
 import { createOrder as apiCreateOrder, getCustomerOrders, getAllOrders, updateOrderStatus as apiUpdateOrderStatus } from '../services/orderService';
+import { getReservations as apiGetReservations, createReservation as apiCreateReservation, updateReservation as apiUpdateReservation, cancelReservation as apiCancelReservation } from '../services/reservationService';
+import { getTeamMembers as apiGetTeamMembers, addTeamMember as apiAddTeamMember, updateTeamMember as apiUpdateTeamMember, deleteTeamMember as apiDeleteTeamMember } from '../services/teamService';
 
 const AppContext = createContext();
 
 const defaultMenuItems = [
-    // Biryani
-    { id: 'b-001', name: 'Chicken Biryani', category: 'Biryani', price: 12.99, available: true, description: 'Fragrant basmati rice cooked with tender chicken and aromatic spices.', image: '🍚', rating: 4.8, featured: true },
-    { id: 'b-002', name: 'Hyderabadi Chicken Biryani', category: 'Biryani', price: 14.99, available: true, description: 'Authentic Hyderabadi-style biryani with marinated chicken and saffron rice.', image: '🍚', rating: 4.9, featured: true },
-    { id: 'b-003', name: 'Malabar Biryani', category: 'Biryani', price: 15.99, available: true, description: 'Kerala-style biryani with coconut, curry leaves, and local spices.', image: '🍚', rating: 4.7, featured: false },
-    { id: 'b-004', name: 'Mutton Biryani', category: 'Biryani', price: 16.99, available: true, description: 'Slow-cooked mutton with basmati rice and traditional spice blend.', image: '🍚', rating: 4.8, featured: false },
-    { id: 'b-005', name: 'Beef Biryani', category: 'Biryani', price: 15.99, available: true, description: 'Tender beef cooked with basmati rice and warming spices.', image: '🍚', rating: 4.6, featured: false },
-    { id: 'b-006', name: 'Prawns Biryani', category: 'Biryani', price: 17.99, available: true, description: 'Fresh prawns with fragrant rice and coastal flavors.', image: '🍚', rating: 4.7, featured: false },
-    { id: 'b-007', name: 'Veg Biryani', category: 'Biryani', price: 10.99, available: true, description: 'Mixed vegetables with aromatic basmati rice and Indian spices.', image: '🍚', rating: 4.5, featured: false },
-    // Kerala Specials
-    { id: 'k-001', name: 'Porotta & Beef Curry', category: 'Kerala Specials', price: 13.99, available: true, description: 'Crispy layered porotta with rich Kerala beef curry.', image: '🥘', rating: 4.8, featured: true },
-    { id: 'k-002', name: 'Kappa & Fish Curry', category: 'Kerala Specials', price: 12.99, available: true, description: 'Cassava fries with tangy Kerala fish curry.', image: '🐟', rating: 4.7, featured: false },
-    { id: 'k-003', name: 'Appam & Chicken Stew', category: 'Kerala Specials', price: 11.99, available: true, description: 'Soft rice crepes with mild chicken stew.', image: '🥯', rating: 4.6, featured: false },
-    { id: 'k-004', name: 'Puttu & Kadala Curry', category: 'Kerala Specials', price: 9.99, available: true, description: 'Cylindrical steamed cake with chickpea curry.', image: '🍲', rating: 4.5, featured: false },
-    { id: 'k-005', name: 'Kerala Meals', category: 'Kerala Specials', price: 14.99, available: true, description: 'Complete Kerala meal with multiple curries and rice.', image: '🍛', rating: 4.8, featured: false },
-    { id: 'k-006', name: 'Fish Molee', category: 'Kerala Specials', price: 13.99, available: true, description: 'Tender fish in coconut cream sauce with spices.', image: '🐟', rating: 4.7, featured: false },
-    { id: 'k-007', name: 'Thalassery Biryani', category: 'Kerala Specials', price: 14.99, available: true, description: 'Thalassery-style biryani with unique spice blend.', image: '🍚', rating: 4.8, featured: false },
-    // South Indian
-    { id: 's-001', name: 'Masala Dosa', category: 'South Indian', price: 8.99, available: true, description: 'Crispy crepe filled with spiced potato and served with sambar.', image: '🥙', rating: 4.7, featured: true },
-    { id: 's-002', name: 'Plain Dosa', category: 'South Indian', price: 6.99, available: true, description: 'Classic crispy crepe served with chutney and sambar.', image: '🥙', rating: 4.5, featured: false },
-    { id: 's-003', name: 'Ghee Roast', category: 'South Indian', price: 7.99, available: true, description: 'Dosa roasted with clarified butter until crispy.', image: '🥙', rating: 4.6, featured: false },
-    { id: 's-004', name: 'Mysore Masala Dosa', category: 'South Indian', price: 9.99, available: true, description: 'Spiced dosa with red chutney spread inside.', image: '🥙', rating: 4.8, featured: false },
-    { id: 's-005', name: 'Idli Sambar', category: 'South Indian', price: 7.99, available: true, description: 'Soft steamed rice cakes with lentil vegetable stew.', image: '🍚', rating: 4.6, featured: false },
-    { id: 's-006', name: 'Vada', category: 'South Indian', price: 5.99, available: true, description: 'Crispy fried lentil donuts served with sambar.', image: '🍩', rating: 4.5, featured: false },
-    { id: 's-007', name: 'Pongal', category: 'South Indian', price: 8.99, available: true, description: 'Rice and lentil porridge tempered with pepper and cumin.', image: '🍲', rating: 4.6, featured: false },
-    { id: 's-008', name: 'Uttapam', category: 'South Indian', price: 7.99, available: true, description: 'Savory rice pancake topped with onions and tomatoes.', image: '🥞', rating: 4.5, featured: false },
-    // North Indian
-    { id: 'n-001', name: 'Butter Chicken', category: 'North Indian', price: 13.99, available: true, description: 'Tender chicken in creamy tomato butter sauce.', image: '🍗', rating: 4.9, featured: true },
-    { id: 'n-002', name: 'Chicken Tikka Masala', category: 'North Indian', price: 14.99, available: true, description: 'Tandoori chicken in aromatic creamy curry.', image: '🍗', rating: 4.8, featured: true },
-    { id: 'n-003', name: 'Paneer Butter Masala', category: 'North Indian', price: 12.99, available: true, description: 'Cottage cheese cubes in rich tomato cream sauce.', image: '🧀', rating: 4.7, featured: false },
-    { id: 'n-004', name: 'Palak Paneer', category: 'North Indian', price: 11.99, available: true, description: 'Spinach puree with cottage cheese.', image: '🥬', rating: 4.6, featured: false },
-    { id: 'n-005', name: 'Kadai Chicken', category: 'North Indian', price: 12.99, available: true, description: 'Chicken cooked with peppers and onions in tomato base.', image: '🍗', rating: 4.7, featured: false },
-    { id: 'n-006', name: 'Dal Makhani', category: 'North Indian', price: 10.99, available: true, description: 'Black lentils cooked overnight with cream and butter.', image: '🍲', rating: 4.8, featured: false },
-    { id: 'n-007', name: 'Chole Bhature', category: 'North Indian', price: 9.99, available: true, description: 'Fluffy fried bread with spiced chickpea curry.', image: '🥖', rating: 4.6, featured: false },
-    // Chinese & Indo-Chinese
-    { id: 'ic-001', name: 'Chicken Fried Rice', category: 'Chinese & Indo-Chinese', price: 9.99, available: true, description: 'Rice stir-fried with chicken and vegetables.', image: '🍚', rating: 4.5, featured: false },
-    { id: 'ic-002', name: 'Veg Fried Rice', category: 'Chinese & Indo-Chinese', price: 8.99, available: true, description: 'Mixed vegetables stir-fried with rice.', image: '🍚', rating: 4.4, featured: false },
-    { id: 'ic-003', name: 'Schezwan Fried Rice', category: 'Chinese & Indo-Chinese', price: 10.99, available: true, description: 'Spicy fried rice with Schezwan sauce and vegetables.', image: '🌶️', rating: 4.6, featured: false },
-    { id: 'ic-004', name: 'Chicken Noodles', category: 'Chinese & Indo-Chinese', price: 9.99, available: true, description: 'Stir-fried noodles with tender chicken.', image: '🍜', rating: 4.5, featured: false },
-    { id: 'ic-005', name: 'Hakka Noodles', category: 'Chinese & Indo-Chinese', price: 8.99, available: true, description: 'Hakka-style noodles with vegetables.', image: '🍜', rating: 4.4, featured: false },
-    { id: 'ic-006', name: 'Gobi Manchurian', category: 'Chinese & Indo-Chinese', price: 10.99, available: true, description: 'Cauliflower florets in tangy Manchurian sauce.', image: '🥦', rating: 4.6, featured: false },
-    { id: 'ic-007', name: 'Chicken Manchurian', category: 'Chinese & Indo-Chinese', price: 11.99, available: true, description: 'Crispy chicken balls in tangy Manchurian sauce.', image: '🍗', rating: 4.7, featured: false },
-    // Starters
-    { id: 'st-001', name: 'Chicken 65', category: 'Starters', price: 8.99, available: true, description: 'Spicy fried chicken pieces with aromatic spices.', image: '🍗', rating: 4.7, featured: true },
-    { id: 'st-002', name: 'Chicken Lollipop', category: 'Starters', price: 9.99, available: true, description: 'Chicken wings with meat lollipop style, spiced and fried.', image: '🍗', rating: 4.6, featured: false },
-    { id: 'st-003', name: 'Dragon Chicken', category: 'Starters', price: 10.99, available: true, description: 'Indo-Chinese style spicy fried chicken.', image: '🍗', rating: 4.6, featured: false },
-    { id: 'st-004', name: 'Paneer Tikka', category: 'Starters', price: 9.99, available: true, description: 'Marinated cottage cheese grilled on skewers.', image: '🧀', rating: 4.7, featured: false },
-    { id: 'st-005', name: 'Tandoori Chicken', category: 'Starters', price: 11.99, available: true, description: 'Half chicken marinated and roasted in tandoor.', image: '🍗', rating: 4.8, featured: false },
-    { id: 'st-006', name: 'Fish Fry', category: 'Starters', price: 10.99, available: true, description: 'Marinated fish fried until crispy.', image: '🐟', rating: 4.6, featured: false },
-    { id: 'st-007', name: 'Prawn Fry', category: 'Starters', price: 11.99, available: true, description: 'Crispy fried prawns with aromatic spices.', image: '🦐', rating: 4.7, featured: false },
-    // Seafood
-    { id: 'sf-001', name: 'Fish Curry', category: 'Seafood', price: 12.99, available: true, description: 'Fresh fish in aromatic coconut or tomato curry.', image: '🐟', rating: 4.7, featured: false },
-    { id: 'sf-002', name: 'Prawn Roast', category: 'Seafood', price: 14.99, available: true, description: 'Prawns roasted with aromatic spices.', image: '🦐', rating: 4.7, featured: false },
-    { id: 'sf-003', name: 'Crab Masala', category: 'Seafood', price: 16.99, available: true, description: 'Fresh crab cooked in spiced gravy.', image: '🦀', rating: 4.8, featured: false },
-    { id: 'sf-004', name: 'Squid Roast', category: 'Seafood', price: 13.99, available: true, description: 'Tender squid roasted with onions and spices.', image: '🦑', rating: 4.6, featured: false },
-    { id: 'sf-005', name: 'Fish Fry (Seafood)', category: 'Seafood', price: 11.99, available: true, description: 'Marinated fish fried until crispy and golden.', image: '🐟', rating: 4.6, featured: false },
-    // Vegetarian
-    { id: 'v-001', name: 'Veg Kurma', category: 'Vegetarian', price: 9.99, available: true, description: 'Mixed vegetables in creamy coconut sauce.', image: '🥘', rating: 4.5, featured: false },
-    { id: 'v-002', name: 'Mushroom Masala', category: 'Vegetarian', price: 10.99, available: true, description: 'Fresh mushrooms in aromatic tomato gravy.', image: '🍄', rating: 4.6, featured: false },
-    { id: 'v-003', name: 'Aloo Gobi', category: 'Vegetarian', price: 8.99, available: true, description: 'Potato and cauliflower stir-fried with spices.', image: '🥔', rating: 4.5, featured: false },
-    { id: 'v-004', name: 'Veg Kolhapuri', category: 'Vegetarian', price: 9.99, available: true, description: 'Vegetables in Kolhapuri-style spicy gravy.', image: '🌶️', rating: 4.6, featured: false },
-    { id: 'v-005', name: 'Paneer Tikka Masala', category: 'Vegetarian', price: 11.99, available: true, description: 'Grilled paneer in creamy tomato curry.', image: '🧀', rating: 4.7, featured: false },
-    // Bread
-    { id: 'br-001', name: 'Kerala Porotta', category: 'Bread', price: 2.99, available: true, description: 'Flaky, layered paratha from Kerala.', image: '🥖', rating: 4.6, featured: false },
-    { id: 'br-002', name: 'Butter Naan', category: 'Bread', price: 2.99, available: true, description: 'Soft naan bread brushed with butter.', image: '🥖', rating: 4.5, featured: false },
-    { id: 'br-003', name: 'Garlic Naan', category: 'Bread', price: 3.49, available: true, description: 'Naan topped with garlic and herbs.', image: '🥖', rating: 4.6, featured: false },
-    { id: 'br-004', name: 'Tandoori Roti', category: 'Bread', price: 1.99, available: true, description: 'Whole wheat bread roasted in tandoor.', image: '🥖', rating: 4.4, featured: false },
-    { id: 'br-005', name: 'Chapati', category: 'Bread', price: 1.49, available: true, description: 'Simple Indian flatbread.', image: '🥖', rating: 4.3, featured: false },
-    // Desserts
-    { id: 'd-001', name: 'Gulab Jamun', category: 'Desserts', price: 4.99, available: true, description: 'Soft milk solids in rose-flavored sugar syrup.', image: '🍯', rating: 4.7, featured: false },
-    { id: 'd-002', name: 'Rasmalai', category: 'Desserts', price: 5.99, available: true, description: 'Soft cheese balls in creamy sweetened milk.', image: '🥛', rating: 4.8, featured: false },
-    { id: 'd-003', name: 'Payasam', category: 'Desserts', price: 5.99, available: true, description: 'Kerala-style sweet rice pudding.', image: '🍮', rating: 4.7, featured: false },
-    { id: 'd-004', name: 'Carrot Halwa', category: 'Desserts', price: 4.99, available: true, description: 'Grated carrots cooked in milk and ghee.', image: '🥕', rating: 4.6, featured: false },
-    { id: 'd-005', name: 'Kulfi', category: 'Desserts', price: 3.99, available: true, description: 'Traditional Indian frozen dessert.', image: '🍦', rating: 4.6, featured: false },
-    { id: 'd-006', name: 'Falooda', category: 'Desserts', price: 4.99, available: true, description: 'Chilled dessert with noodles, cream, and falsa.', image: '🍨', rating: 4.7, featured: false },
-    // Beverages
-    { id: 'be-001', name: 'Lime Juice', category: 'Beverages', price: 2.99, available: true, description: 'Fresh lime juice with water and sugar.', image: '🍋', rating: 4.4, featured: false },
-    { id: 'be-002', name: 'Mint Lime', category: 'Beverages', price: 3.49, available: true, description: 'Refreshing lime juice with fresh mint.', image: '🌿', rating: 4.5, featured: false },
-    { id: 'be-003', name: 'Watermelon Juice', category: 'Beverages', price: 3.99, available: true, description: 'Fresh watermelon juice.', image: '🍉', rating: 4.5, featured: false },
-    { id: 'be-004', name: 'Mango Shake', category: 'Beverages', price: 4.49, available: true, description: 'Creamy mango shake with milk.', image: '🥭', rating: 4.6, featured: false },
-    { id: 'be-005', name: 'Tea', category: 'Beverages', price: 1.99, available: true, description: 'Hot Indian chai.', image: '☕', rating: 4.3, featured: false },
-    { id: 'be-006', name: 'Coffee', category: 'Beverages', price: 2.49, available: true, description: 'Hot coffee.', image: '☕', rating: 4.4, featured: false },
-    { id: 'be-007', name: 'Badam Milk', category: 'Beverages', price: 3.99, available: true, description: 'Almond milk shake with spices.', image: '🥛', rating: 4.5, featured: false },
+    { id: 'b-001', name: 'Chicken Biryani', category: 'Biryani', price: 12.99, available: true, description: 'Fragrant basmati rice cooked with tender chicken and aromatic spices.', image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400', rating: 4.8, featured: true },
+    { id: 'b-002', name: 'Beef Biryani', category: 'Biryani', price: 14.99, available: true, description: 'Tender beef pieces layered with spiced rice and saffron.', image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400', rating: 4.9, featured: true },
+    { id: 'b-003', name: 'Mutton Biryani', category: 'Biryani', price: 16.99, available: true, description: 'Slow-cooked mutton with basmati rice and traditional spice blend.', image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400', rating: 4.8, featured: false },
+    { id: 'b-004', name: 'Alfaham Biryani', category: 'Biryani', price: 15.99, available: true, description: 'Arabic-style grilled chicken biryani with special spices.', image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400', rating: 4.7, featured: false },
+    { id: 'ar-001', name: 'Mandi', category: 'Arabic', price: 18.99, available: true, description: 'Traditional Yemeni rice dish with tender meat and aromatic spices.', image: 'https://images.unsplash.com/photo-1511690656952-34342d5c71df?w=400', rating: 4.9, featured: true },
+    { id: 'ar-002', name: 'Kuzhimandi', category: 'Arabic', price: 16.99, available: true, description: 'Malabar-style Arabic rice with chicken or mutton.', image: 'https://images.unsplash.com/photo-1511690656952-34342d5c71df?w=400', rating: 4.8, featured: true },
+    { id: 'ar-003', name: 'Alfaham', category: 'Arabic', price: 14.99, available: true, description: 'Grilled chicken with Arabic spices and rice.', image: 'https://images.unsplash.com/photo-1511690656952-34342d5c71df?w=400', rating: 4.7, featured: false },
+    { id: 'ri-001', name: 'Fried Rice', category: 'Rice', price: 7.99, available: true, description: 'Classic fried rice with vegetables and soy sauce.', image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400', rating: 4.4, featured: false },
+    { id: 'ri-002', name: 'Chicken Fried Rice', category: 'Rice', price: 9.99, available: true, description: 'Rice stir-fried with chicken and vegetables.', image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400', rating: 4.5, featured: false },
+    { id: 'ri-003', name: 'Schezwan Rice', category: 'Rice', price: 10.99, available: true, description: 'Spicy fried rice with Schezwan sauce and vegetables.', image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400', rating: 4.6, featured: false },
+    { id: 'swa-001', name: 'Arabic Shawarma', category: 'Shawarma', price: 8.99, available: true, description: 'Traditional Arabic shawarma with garlic sauce and pickles.', image: 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=400', rating: 4.7, featured: true },
+    { id: 'swa-002', name: 'Plate Shawarma', category: 'Shawarma', price: 10.99, available: true, description: 'Shawarma served on plate with rice and salad.', image: 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=400', rating: 4.6, featured: false },
+    { id: 'swa-003', name: 'Mexican Shawarma', category: 'Shawarma', price: 9.49, available: true, description: 'Spicy Mexican-style shawarma with jalapeños.', image: 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=400', rating: 4.5, featured: false },
+    { id: 'bg-001', name: 'Chicken Burger', category: 'Burger', price: 9.99, available: true, description: 'Crispy chicken fillet with lettuce and mayo.', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400', rating: 4.6, featured: false },
+    { id: 'bg-002', name: 'Zinger Burger', category: 'Burger', price: 10.99, available: true, description: 'Spicy zinger chicken with crispy coating.', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400', rating: 4.7, featured: true },
+    { id: 'bg-003', name: 'Cheese Burger', category: 'Burger', price: 11.99, available: true, description: 'Double cheese with beef patty and special sauce.', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400', rating: 4.8, featured: true },
+    { id: 'pz-001', name: 'Margherita Pizza', category: 'Pizza', price: 11.99, available: true, description: 'Classic tomato sauce, mozzarella, and fresh basil.', image: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400', rating: 4.7, featured: true },
+    { id: 'pz-002', name: 'Chicken Pizza', category: 'Pizza', price: 13.99, available: true, description: 'Grilled chicken with bell peppers and mozzarella.', image: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400', rating: 4.8, featured: true },
+    { id: 'pz-003', name: 'Pepperoni Pizza', category: 'Pizza', price: 12.99, available: true, description: 'Loaded with pepperoni and melted cheese.', image: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400', rating: 4.6, featured: false },
+    { id: 'bro-001', name: 'Broast Quarter', category: 'Broast', price: 9.99, available: true, description: 'Crispy broast quarter with special spices.', image: 'https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58?w=400', rating: 4.6, featured: false },
+    { id: 'bro-002', name: 'Broast Half', category: 'Broast', price: 14.99, available: true, description: 'Half chicken broast with fries and drink.', image: 'https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58?w=400', rating: 4.7, featured: true },
+    { id: 'bro-003', name: 'Broast Full', category: 'Broast', price: 24.99, available: true, description: 'Full chicken broast with all sides and drinks.', image: 'https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58?w=400', rating: 4.8, featured: true },
+    { id: 'sn-001', name: 'Sandwich', category: 'Snacks', price: 5.99, available: true, description: 'Classic sandwich with fresh vegetables.', image: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=400', rating: 4.3, featured: false },
+    { id: 'sn-002', name: 'Club Sandwich', category: 'Snacks', price: 7.99, available: true, description: 'Triple-decker with chicken, egg, and bacon.', image: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=400', rating: 4.6, featured: false },
+    { id: 'sn-003', name: 'Nuggets', category: 'Snacks', price: 6.99, available: true, description: 'Crispy chicken nuggets with dipping sauce.', image: 'https://images.unsplash.com/photo-1562967914-608f82629710?w=400', rating: 4.5, featured: false },
+    { id: 'sn-004', name: 'French Fries', category: 'Snacks', price: 4.99, available: true, description: 'Golden crispy fries with salt.', image: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=400', rating: 4.4, featured: false },
+    { id: 'j-001', name: 'Mango Juice', category: 'Juices', price: 4.49, available: true, description: 'Sweet mango juice with real fruit pulp.', image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=400', rating: 4.8, featured: true },
+    { id: 'j-002', name: 'Watermelon Juice', category: 'Juices', price: 3.99, available: true, description: 'Fresh watermelon juice, perfect for summer.', image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=400', rating: 4.7, featured: false },
+    { id: 'j-003', name: 'Orange Juice', category: 'Juices', price: 3.99, available: true, description: 'Freshly squeezed orange juice.', image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=400', rating: 4.6, featured: false },
+    { id: 'j-004', name: 'Avocado Juice', category: 'Juices', price: 5.49, available: true, description: 'Creamy avocado juice with honey.', image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=400', rating: 4.5, featured: false },
+    { id: 'sd-001', name: 'Coca Cola', category: 'Soft Drinks', price: 1.99, available: true, description: 'Classic Coca-Cola 330ml.', image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400', rating: 4.5, featured: false },
+    { id: 'sd-002', name: 'Pepsi', category: 'Soft Drinks', price: 1.99, available: true, description: 'Refreshing Pepsi 330ml.', image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400', rating: 4.4, featured: false },
+    { id: 'sd-003', name: 'Sprite', category: 'Soft Drinks', price: 1.99, available: true, description: 'Lemon-lime flavored soda 330ml.', image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400', rating: 4.4, featured: false },
+    { id: 'sd-004', name: 'Fanta Orange', category: 'Soft Drinks', price: 1.99, available: true, description: 'Orange flavored soft drink 330ml.', image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400', rating: 4.3, featured: false },
+    { id: 'd-001', name: 'Ice Cream', category: 'Desserts', price: 4.99, available: true, description: 'Creamy vanilla ice cream with toppings.', image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400', rating: 4.6, featured: false },
+    { id: 'd-002', name: 'Brownie', category: 'Desserts', price: 5.99, available: true, description: 'Warm chocolate brownie with nuts.', image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400', rating: 4.7, featured: true },
+    { id: 'd-003', name: 'Falooda', category: 'Desserts', price: 6.99, available: true, description: 'Traditional Indian dessert with vermicelli and ice cream.', image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400', rating: 4.8, featured: true },
+    { id: 'd-004', name: 'Kunafa', category: 'Desserts', price: 7.99, available: true, description: 'Middle Eastern sweet pastry with cheese.', image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400', rating: 4.9, featured: true },
 ];
 
 const loadAppState = () => {
@@ -115,14 +73,16 @@ const AppProvider = ({ children }) => {
     const [menuItems, setMenuItems] = useState(storedState?.menuItems ?? defaultMenuItems);
     const [cartItems, setCartItems] = useState(storedState?.cartItems ?? []);
     const [orders, setOrders] = useState([]);
-    const [reservations, setReservations] = useState(storedState?.reservations ?? []);
+    const [reservations, setReservations] = useState([]);
     const [reviews, setReviews] = useState(storedState?.reviews ?? []);
+    const [teamMembers, setTeamMembers] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         const loadInitialData = async () => {
+            setLoading(true);
             try {
-                // Fetch Menu
                 const fetchedMenu = await fetchMenu();
                 if (fetchedMenu && fetchedMenu.length > 0) {
                     setMenuItems(fetchedMenu);
@@ -133,7 +93,6 @@ const AppProvider = ({ children }) => {
 
             if (user) {
                 try {
-                    // Fetch Orders based on Role
                     let fetchedOrders = [];
                     if (user.role === 'admin' || user.role === 'staff') {
                         fetchedOrders = await getAllOrders();
@@ -144,10 +103,21 @@ const AppProvider = ({ children }) => {
                     if (fetchedOrders) {
                         setOrders(fetchedOrders);
                     }
+
+                    const fetchedReservations = await apiGetReservations();
+                    if (fetchedReservations) {
+                        setReservations(fetchedReservations);
+                    }
+
+                    const fetchedTeam = await apiGetTeamMembers();
+                    if (fetchedTeam) {
+                        setTeamMembers(fetchedTeam);
+                    }
                 } catch (err) {
-                    console.error('Error fetching orders:', err);
+                    console.error('Error fetching data:', err);
                 }
             }
+            setLoading(false);
         };
 
         loadInitialData();
@@ -165,8 +135,11 @@ const AppProvider = ({ children }) => {
         [cartItems]
     );
 
+    const cartTax = useMemo(() => cartTotal * 0.05, [cartTotal]);
+    const cartGrandTotal = useMemo(() => cartTotal + cartTax, [cartTotal, cartTax]);
+
     const totalRevenue = useMemo(
-        () => orders.reduce((sum, order) => sum + order.totalAmount, 0),
+        () => orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0),
         [orders]
     );
 
@@ -254,10 +227,10 @@ const AppProvider = ({ children }) => {
         const order = orders.find((item) => item._id === orderId || item.id === orderId);
         if (!order) return;
 
-        const statusSequence = ['received', 'preparing', 'ready', 'completed'];
+        const statusFlow = ['pending', 'confirmed', 'preparing', 'ready', 'delivered'];
         const currentStatus = order.orderStatus || order.status;
-        const nextIndex = Math.min(statusSequence.indexOf(currentStatus) + 1, statusSequence.length - 1);
-        const nextStatus = statusSequence[nextIndex];
+        const nextIndex = Math.min(statusFlow.indexOf(currentStatus) + 1, statusFlow.length - 1);
+        const nextStatus = statusFlow[nextIndex];
 
         try {
             const updatedOrder = await apiUpdateOrderStatus(orderId, nextStatus);
@@ -270,49 +243,121 @@ const AppProvider = ({ children }) => {
         }
     };
 
-    const addMenuItem = ({ name, category, price, description }) => {
-        const nextItem = {
-            id: `m-${Date.now()}`,
-            name,
-            category,
-            price: parseFloat(price) || 0,
-            available: true,
-            description,
-        };
-
-        setMenuItems((current) => [nextItem, ...current]);
-        showToast(`${name} added to the menu.`, 'success');
+    const addMenuItem = async ({ name, category, price, description, image, available }) => {
+        try {
+            const payload = { 
+                name, 
+                category, 
+                price: parseFloat(price) || 0, 
+                description,
+                image: image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400',
+                available: available !== false,
+            };
+            const nextItem = await apiAddMenuItem(payload);
+            setMenuItems((current) => [nextItem, ...current]);
+            showToast(`${name} added to the menu.`, 'success');
+        } catch (err) {
+            showToast('Failed to add menu item.', 'danger');
+        }
     };
 
-    const addReservation = ({ name, time, guests, notes }) => {
-        const nextReservation = {
-            id: `R-${Date.now()}`,
-            name,
-            time,
-            guests: Number(guests) || 2,
-            status: 'confirmed',
-            notes,
-        };
-
-        setReservations((current) => [nextReservation, ...current]);
-        showToast('Reservation confirmed.', 'success');
+    const updateMenuItem = async (id, updates) => {
+        try {
+            const updated = await apiUpdateMenuItem(id, updates);
+            setMenuItems((current) =>
+                current.map((item) => (item._id === id || item.id === id ? updated : item))
+            );
+            showToast('Menu item updated.', 'success');
+        } catch (err) {
+            showToast('Failed to update menu item.', 'danger');
+        }
     };
 
-    const updateReservationStatus = (reservationId, nextStatus) => {
-        setReservations((current) =>
-            current.map((reservation) =>
-                reservation.id === reservationId ? { ...reservation, status: nextStatus } : reservation
-            )
-        );
+    const removeMenuItem = async (id) => {
+        try {
+            await apiDeleteMenuItem(id);
+            setMenuItems((current) => current.filter((item) => item._id !== id && item.id !== id));
+            showToast('Menu item removed.', 'info');
+        } catch (err) {
+            showToast('Failed to remove menu item.', 'danger');
+        }
     };
 
-    const cancelReservation = (reservationId) => {
-        setReservations((current) =>
-            current.map((reservation) =>
-                reservation.id === reservationId ? { ...reservation, status: 'cancelled' } : reservation
-            )
-        );
-        showToast('Reservation cancelled.', 'warning');
+    const createReservation = async ({ name, time, guests, notes }) => {
+        try {
+            const nextReservation = await apiCreateReservation({ 
+                customerName: name,
+                time,
+                guests: Number(guests) || 2, 
+                notes,
+                reservationDate: new Date().toISOString(),
+                tableNumber: Math.floor(Math.random() * 20) + 1,
+            });
+            setReservations((current) => [nextReservation, ...current]);
+            showToast('Reservation confirmed.', 'success');
+        } catch (err) {
+            showToast('Failed to create reservation.', 'danger');
+        }
+    };
+
+    const updateReservationStatus = async (reservationId, nextStatus) => {
+        try {
+            const updated = await apiUpdateReservation(reservationId, { status: nextStatus });
+            setReservations((current) =>
+                current.map((reservation) =>
+                    reservation._id === reservationId ? updated : reservation
+                )
+            );
+            showToast('Reservation status updated.', 'success');
+        } catch (err) {
+            showToast('Failed to update reservation.', 'danger');
+        }
+    };
+
+    const cancelReservation = async (reservationId) => {
+        try {
+            const updated = await apiCancelReservation(reservationId);
+            setReservations((current) =>
+                current.map((reservation) =>
+                    reservation._id === reservationId ? updated : reservation
+                )
+            );
+            showToast('Reservation cancelled.', 'warning');
+        } catch (err) {
+            showToast('Failed to cancel reservation.', 'danger');
+        }
+    };
+
+    const addTeamMember = async (memberData) => {
+        try {
+            const member = await apiAddTeamMember(memberData);
+            setTeamMembers((current) => [member, ...current]);
+            showToast('Team member added successfully.', 'success');
+        } catch (err) {
+            showToast('Failed to add team member.', 'danger');
+        }
+    };
+
+    const updateTeamMember = async (id, updates) => {
+        try {
+            const updated = await apiUpdateTeamMember(id, updates);
+            setTeamMembers((current) =>
+                current.map((member) => (member._id === id || member.id === id ? updated : member))
+            );
+            showToast('Team member updated.', 'success');
+        } catch (err) {
+            showToast('Failed to update team member.', 'danger');
+        }
+    };
+
+    const deleteTeamMember = async (id) => {
+        try {
+            await apiDeleteTeamMember(id);
+            setTeamMembers((current) => current.filter((member) => member._id !== id && member.id !== id));
+            showToast('Team member deleted.', 'info');
+        } catch (err) {
+            showToast('Failed to delete team member.', 'danger');
+        }
     };
 
     const topDishes = useMemo(
@@ -330,10 +375,13 @@ const AppProvider = ({ children }) => {
             orders,
             reservations,
             reviews,
+            teamMembers,
             searchQuery,
             setSearchQuery,
             filteredMenuItems,
             cartTotal,
+            cartTax,
+            cartGrandTotal,
             totalRevenue,
             topDishes,
             formatCurrency,
@@ -344,9 +392,15 @@ const AppProvider = ({ children }) => {
             placeOrder,
             cycleOrderStatus,
             addMenuItem,
-            addReservation,
+            updateMenuItem,
+            removeMenuItem,
+            createReservation,
             updateReservationStatus,
             cancelReservation,
+            addTeamMember,
+            updateTeamMember,
+            deleteTeamMember,
+            loading,
         }),
         [
             menuItems,
@@ -354,11 +408,15 @@ const AppProvider = ({ children }) => {
             orders,
             reservations,
             reviews,
+            teamMembers,
             searchQuery,
             filteredMenuItems,
             cartTotal,
+            cartTax,
+            cartGrandTotal,
             totalRevenue,
             topDishes,
+            loading,
         ]
     );
 

@@ -19,10 +19,12 @@ const menuItemValidation = [
     body('category').optional().isString().trim(),
     body('image').optional().isString().trim(),
     body('availability').optional().isBoolean(),
+    body('rating').optional().isFloat({ min: 0, max: 5 }),
+    body('featured').optional().isBoolean(),
     validateRequest,
 ];
 
-router.get('/', [query('category').optional().isString().trim(), validateRequest], getMenu);
+router.get('/', [query('category').optional().isString().trim(), query('available').optional().isBoolean(), validateRequest], getMenu);
 router.post('/', protect, authorizeRoles('admin', 'staff'), menuItemValidation, addMenuItem);
 router.put('/:id', protect, authorizeRoles('admin', 'staff'), [param('id').isMongoId().withMessage('Invalid menu item ID'), ...menuItemValidation], updateMenuItem);
 router.delete('/:id', protect, authorizeRoles('admin', 'staff'), [param('id').isMongoId().withMessage('Invalid menu item ID'), validateRequest], deleteMenuItem);

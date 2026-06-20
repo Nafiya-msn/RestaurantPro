@@ -44,7 +44,7 @@ const trackOrder = async (req, res, next) => {
             return res.status(404).json({ message: 'Order not found' });
         }
 
-        const isOwner = order.customer._id.equals(req.user._id);
+    const isOwner = String(order.customer._id) === String(req.user._id);
         if (!isOwner && req.user.role !== 'admin') {
             return res.status(403).json({ message: 'Unauthorized to view this order' });
         }
@@ -58,7 +58,7 @@ const trackOrder = async (req, res, next) => {
 const getCustomerOrders = async (req, res, next) => {
     try {
         const customerId = req.params.customerId;
-        if (!req.user._id.equals(customerId) && req.user.role !== 'admin') {
+        if (String(req.user._id) !== String(customerId) && req.user.role !== 'admin') {
             return res.status(403).json({ message: 'Unauthorized to view customer orders' });
         }
 

@@ -25,7 +25,8 @@ const MenuManagementPage = () => {
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [priceRange, setPriceRange] = useState([0, 30]);
     const [orderType, setOrderType] = useState('Dine-in');
-    const [newDish, setNewDish] = useState({ name: '', category: 'Biryani', price: '', description: '' });
+    const [editingItem, setEditingItem] = useState(null);
+    const [newDish, setNewDish] = useState({ name: '', category: 'Biryani', price: '', description: '', image: '', available: true });
 
     const categories = useMemo(() => {
         const cats = ['All', ...new Set(menuItems.map((item) => item.category))];
@@ -55,8 +56,47 @@ const MenuManagementPage = () => {
         event.preventDefault();
         if (!newDish.name.trim() || !newDish.price.trim()) return;
         addMenuItem(newDish);
-        setNewDish({ name: '', category: 'Biryani', price: '', description: '' });
+        setNewDish({ name: '', category: 'Biryani', price: '', description: '', image: '', available: true });
         setShowForm(false);
+    };
+
+    const handleEditDish = (item) => {
+        setEditingItem(item);
+        setNewDish({
+            name: item.name,
+            category: item.category,
+            price: String(item.price),
+            description: item.description || '',
+            image: item.image || '',
+            available: item.available !== false,
+        });
+        setShowForm(true);
+    };
+
+    const handleUpdateDish = (event) => {
+        event.preventDefault();
+        if (!newDish.name.trim() || !newDish.price.trim() || !editingItem) return;
+        updateMenuItem(editingItem._id || editingItem.id, {
+            name: newDish.name,
+            category: newDish.category,
+            price: parseFloat(newDish.price) || 0,
+            description: newDish.description,
+            image: newDish.image,
+            available: newDish.available,
+        });
+        setEditingItem(null);
+        setNewDish({ name: '', category: 'Biryani', price: '', description: '', image: '', available: true });
+        setShowForm(false);
+    };
+
+    const handleDeleteDish = (item) => {
+        if (window.confirm(`Delete "${item.name}" from the menu?`)) {
+            removeMenuItem(item._id || item.id);
+        }
+    };
+
+    const toggleAvailability = (item) => {
+        updateMenuItem(item._id || item.id, { available: !item.available });
     };
 
     const renderStars = (rating) => {
@@ -105,13 +145,28 @@ const MenuManagementPage = () => {
                         {formatCurrency(item.price)}
                     </strong>
                 </div>
-                <button
-                    className="btn btn-sm btn-gold w-100"
-                    onClick={() => addToCart(item)}
-                    disabled={!item.available}
-                >
-                    {item.available ? 'Add to cart' : 'Unavailable'}
-                </button>
+                <div className="d-flex gap-2">
+                    <button
+                        className="btn btn-sm btn-gold flex-grow-1"
+                        onClick={() => addToCart(item)}
+                        disabled={!item.available}
+                    >
+                        {item.available ? 'Add to cart' : 'Unavailable'}
+                    </button>
+                    {isAdmin && (
+                        <>
+                            <button className="btn btn-sm btn-outline-gold" onClick={() => handleEditDish(item)} title="Edit">✎</button>
+                            <button className="btn btn-sm btn-outline-danger" onClick={() => handleDeleteDish(item)} title="Delete">✕</button>
+                            <button
+                                className={`btn btn-sm ${item.available ? 'btn-outline-warning' : 'btn-outline-success'}`}
+                                onClick={() => toggleAvailability(item)}
+                                title={item.available ? 'Mark unavailable' : 'Mark available'}
+                            >
+                                {item.available ? '☀' : '🌙'}
+                            </button>
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -126,7 +181,7 @@ const MenuManagementPage = () => {
                 </div>
                 <div className="d-flex gap-2 flex-wrap">
                     {isAdmin && (
-                        <button className="btn btn-gold" onClick={() => setShowForm((current) => !current)}>
+                        <button className="btn btn-gold" onClick={() => { setShowForm((current) => !current); setEditingItem(null); }}>
                             {showForm ? 'Close form' : 'Add item'}
                         </button>
                     )}
@@ -195,7 +250,7 @@ const MenuManagementPage = () => {
                 <div className="card border-0 shadow-sm bg-black text-white mb-4">
                     <div className="card-body">
                         <h5 className="mb-3">Add new menu item</h5>
-                        <form onSubmit={handleCreateDish}>
+                        <form onSubmit={editingItem ? handleUpdateDish : handleCreateDish}>
                             <div className="row g-3 align-items-end">
                                 <div className="col-sm-6 col-lg-3">
                                     <label className="form-label">Name</label>
@@ -243,11 +298,28 @@ const MenuManagementPage = () => {
                                         placeholder="Short description"
                                     />
                                 </div>
+                                <div className="col-sm-6 col-lg-2">
+                                    <label className="form-label">Image URL</label>
+                                    <input
+                                        type="text"
+                                        value={newDish.image}
+                                        className="form-control form-control-dark"
+                                        onChange={(event) => setNewDish((current) => ({ ...current, image: event.target.value }))}
+                                        placeholder="https://..."
+                                    />
+                                </div>
                                 <div className="col-12 col-lg-2">
                                     <button type="submit" className="btn btn-gold w-100">
-                                        Add item
+                                        {editingItem ? 'Update item' : 'Add item'}
                                     </button>
                                 </div>
+                                {editingItem && (
+                                    <div className="col-12 col-lg-2">
+                                        <button type="button" className="btn btn-outline-gold w-100" onClick={() => { setEditingItem(null); setNewDish({ name: '', category: 'Biryani', price: '', description: '', image: '', available: true }); }}>
+                                            Cancel edit
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </form>
                     </div>

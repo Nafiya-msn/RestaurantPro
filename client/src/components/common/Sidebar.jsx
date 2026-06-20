@@ -3,17 +3,17 @@ import { useAuth } from '../../context/AuthContext';
 
 const Sidebar = () => {
     const { user } = useAuth();
-    const role = user?.role || 'staff'; // fallback if somehow not set
+    const role = user?.role || 'staff';
 
-    // Define all possible items with their allowed roles
     const allItems = [
         { label: 'Dashboard', to: `/${role}/dashboard`, roles: ['admin', 'staff'] },
-        { label: 'Reservations', to: '/reservations', roles: ['admin'] },
-        { label: 'Orders', to: '/orders', roles: ['admin', 'staff'] },
-        { label: 'Menu', to: '/menu', roles: ['admin', 'staff'] },
-        { label: 'Customers', to: '/customers', roles: ['admin'] },
-        { label: 'Staff', to: '/staff', roles: ['admin'] },
-        { label: 'Profile', to: '/profile', roles: ['admin', 'staff'] },
+        { label: 'Reservations', to: `/${role}/reservations`, roles: ['admin', 'staff'] },
+        { label: 'Orders', to: `/${role}/orders`, roles: ['admin', 'staff'] },
+        { label: 'Menu', to: `/${role}/menu`, roles: ['admin', 'staff'] },
+        { label: 'Team', to: `/${role}/team`, roles: ['admin', 'staff'] },
+        { label: 'Customers', to: `/${role}/customers`, roles: ['admin'] },
+        { label: 'Staff', to: `/${role}/staff`, roles: ['admin'] },
+        { label: 'Profile', to: `/${role}/profile`, roles: ['admin', 'staff'] },
     ];
 
     const navItems = allItems.filter(item => item.roles.includes(role));
