@@ -4,6 +4,7 @@ const {
     createReservation,
     updateReservation,
     cancelReservation,
+    deleteReservation,
     getReservations,
 } = require('../controllers/reservationController');
 const { protect } = require('../middleware/authMiddleware');
@@ -33,5 +34,6 @@ router.get('/', protect, getReservations);
 router.post('/', protect, reservationValidation, createReservation);
 router.put('/:id', protect, reservationUpdateValidation, updateReservation);
 router.put('/:id/cancel', protect, [param('id').isMongoId().withMessage('Invalid reservation ID'), validateRequest], cancelReservation);
+router.delete('/:id', protect, [param('id').isMongoId().withMessage('Invalid reservation ID'), validateRequest], deleteReservation);
 
 module.exports = router;

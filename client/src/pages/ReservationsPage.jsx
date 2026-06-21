@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import Modal from '../components/common/Modal';
 
 const ReservationsPage = () => {
-    const { reservations, addReservation, updateReservationStatus, cancelReservation } = useApp();
+    const { reservations, createReservation, updateReservationStatus, cancelReservation } = useApp();
     const [showModal, setShowModal] = useState(false);
     const [reservationForm, setReservationForm] = useState({
         name: '',
@@ -15,7 +15,7 @@ const ReservationsPage = () => {
     const handleSave = async (event) => {
         event.preventDefault();
         if (!reservationForm.name.trim()) return;
-        await addReservation(reservationForm);
+        await createReservation(reservationForm);
         setShowModal(false);
         setReservationForm({ name: '', time: '18:30', guests: 2, notes: '' });
     };

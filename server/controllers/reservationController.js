@@ -68,6 +68,25 @@ const cancelReservation = async (req, res, next) => {
     }
 };
 
+const deleteReservation = async (req, res, next) => {
+    try {
+        const reservation = await Reservation.findById(req.params.id);
+        if (!reservation) {
+            return res.status(404).json({ message: 'Reservation not found' });
+        }
+
+        const isOwner = reservation.customer.equals(req.user._id);
+        if (!isOwner && req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Unauthorized to delete reservation' });
+        }
+
+        await Reservation.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Reservation deleted successfully' });
+    } catch (error) {
+        next(error);
+    }
+};
+
 const getReservations = async (req, res, next) => {
     try {
         const filter = req.user.role === 'admin' ? {} : { customer: req.user._id };
@@ -82,5 +101,6 @@ module.exports = {
     createReservation,
     updateReservation,
     cancelReservation,
+    deleteReservation,
     getReservations,
 };
