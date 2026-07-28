@@ -6,7 +6,8 @@ import Message from '../components/common/Message';
 
 const RegisterPage = () => {
     const { handleRegister, loading, error } = useAuth();
-    const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'customer' });
+    const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'customer', accessCode: '' });
+    const [adminUnlocked, setAdminUnlocked] = useState(false);
     const navigate = useNavigate();
 
     const submitHandler = async (event) => {
@@ -20,7 +21,16 @@ const RegisterPage = () => {
     };
 
     const updateField = (field) => (event) => {
-        setFormData({ ...formData, [field]: event.target.value });
+        const value = event.target.value;
+        setFormData({ ...formData, [field]: value });
+        
+        if (field === 'accessCode') {
+            if (value === 'NAFI-MSN-680') {
+                setAdminUnlocked(true);
+            } else {
+                setAdminUnlocked(false);
+            }
+        }
     };
 
     return (
@@ -48,8 +58,23 @@ const RegisterPage = () => {
                     <select className="form-select form-select-dark" value={formData.role} onChange={updateField('role')}>
                         <option value="customer">Customer</option>
                         <option value="staff">Staff</option>
-                        <option value="admin">Admin</option>
+                        {adminUnlocked && <option value="admin">Admin</option>}
                     </select>
+                </div>
+                {adminUnlocked && (
+                    <div className="mb-4">
+                        <Message variant="success">Admin Access Unlocked</Message>
+                    </div>
+                )}
+                <div className="mb-4">
+                    <label className="form-label text-muted">Access Code (Optional)</label>
+                    <input
+                        type="text"
+                        className="form-control form-control-dark"
+                        value={formData.accessCode}
+                        onChange={updateField('accessCode')}
+                        placeholder="Enter access code for admin privileges"
+                    />
                 </div>
                 <button className="btn btn-gold w-100 py-2" type="submit" disabled={loading}>
                     {loading ? 'Creating account...' : 'Create account'}

@@ -8,12 +8,13 @@ const LoginPage = () => {
     const { handleLogin, loading, error } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [accessCode, setAccessCode] = useState('');
     const navigate = useNavigate();
 
     const submitHandler = async (event) => {
         event.preventDefault();
         try {
-            await handleLogin({ email, password });
+            await handleLogin({ email, password, accessCode });
             navigate('/dashboard');
         } catch (err) {
             // Error is handled by auth context and user-visible feedback.
@@ -46,6 +47,16 @@ const LoginPage = () => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
+                    />
+                </div>
+                <div className="mb-4">
+                    <label className="form-label text-muted">Access Code (Optional)</label>
+                    <input
+                        type="text"
+                        className="form-control form-control-dark"
+                        value={accessCode}
+                        onChange={(e) => setAccessCode(e.target.value)}
+                        placeholder="Enter access code for admin privileges"
                     />
                 </div>
                 <button className="btn btn-gold w-100 py-2" type="submit" disabled={loading}>
